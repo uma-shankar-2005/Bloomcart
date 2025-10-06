@@ -1,0 +1,6 @@
+-- Add missing columns to products table
+ALTER TABLE products 
+ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true,
+ADD COLUMN IF NOT EXISTS category VARCHAR(50),
+ADD COLUMN IF NOT EXISTS occasion VARCHAR(50),
+ADD COLUMN IF NOT EXISTS featured BOOLEAN DEFAULT false;

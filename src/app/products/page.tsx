@@ -3,10 +3,10 @@ import { Metadata } from "next";
 import { ProductGrid } from "@/components/products/product-grid";
 import { ProductFilters } from "@/components/products/product-filters";
 import { ProductSearch } from "@/components/products/product-search";
-import { getProducts } from "@/lib/data/products";
+import { getProducts, type ProductFilters as Filters } from "@/lib/data/products";
 
 interface ProductsPageProps {
-  searchParams: Promise<{
+  searchParams: {
     type?: string;
     category?: string;
     occasion?: string;
@@ -15,11 +15,25 @@ interface ProductsPageProps {
     maxPrice?: string;
     sortBy?: string;
     page?: string;
-  }>;
+  };
+}
+
+function parseFilters(searchParams: ProductsPageProps['searchParams']): Filters {
+  return {
+    type: searchParams.type ? [searchParams.type] : undefined,
+    category: searchParams.category ? [searchParams.category] : undefined,
+    occasion: searchParams.occasion ? [searchParams.occasion] : undefined,
+    search: searchParams.search,
+    minPrice: searchParams.minPrice ? parseFloat(searchParams.minPrice) : undefined,
+    maxPrice: searchParams.maxPrice ? parseFloat(searchParams.maxPrice) : undefined,
+    sortBy: searchParams.sortBy,
+    page: searchParams.page ? parseInt(searchParams.page) : 1,
+  };
 }
 
 export async function generateMetadata({ searchParams }: ProductsPageProps): Promise<Metadata> {
-  const { type, category, search } = await searchParams;
+  const params = await Promise.resolve(searchParams);
+  const { type, category, search } = params;
   
   let title = "All Products";
   let description = "Browse our complete collection of fresh flowers, dried flowers, artificial flowers, and décor items.";
@@ -56,31 +70,34 @@ export async function generateMetadata({ searchParams }: ProductsPageProps): Pro
 }
 
 export default async function ProductsPage({ searchParams }: ProductsPageProps) {
-  const {
+  // First await the searchParams
+  const params = await Promise.resolve(searchParams);
+  
+  // Now we can safely access the properties
+  const filters = {
+    type: params.type ? [params.type] : undefined,
+    category: params.category ? [params.category] : undefined,
+    occasion: params.occasion ? [params.occasion] : undefined,
+    search: params.search,
+    minPrice: params.minPrice ? parseFloat(params.minPrice) : undefined,
+    maxPrice: params.maxPrice ? parseFloat(params.maxPrice) : undefined,
+    sortBy: params.sortBy,
+    page: params.page ? parseInt(params.page, 10) : 1,
+  };
+  
+  const result = await getProducts(filters);
+  const { products, totalCount, totalPages } = result;
+  
+  // Destructure params for use in the template
+  const { 
     type,
+    search,
     category,
     occasion,
-    search,
     minPrice,
-    maxPrice,
-    sortBy = "featured",
-    page = "1",
-  } = await searchParams;
-
-  const currentPage = parseInt(page, 10);
-  const filters = {
-    type: type ? [type] : undefined,
-    category: category ? [category] : undefined,
-    occasion: occasion ? [occasion] : undefined,
-    search,
-    minPrice: minPrice ? parseInt(minPrice, 10) : undefined,
-    maxPrice: maxPrice ? parseInt(maxPrice, 10) : undefined,
-    sortBy,
-    page: currentPage,
-    limit: 12,
-  };
-
-  const { products, totalCount, totalPages } = await getProducts(filters);
+    maxPrice
+  } = params;
+  const currentPage = params.page ? parseInt(params.page, 10) : 1;
 
   return (
     <div className="min-h-screen bg-background">
@@ -90,7 +107,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
           <h1 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
             {type ? (
               <>
-                {type.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase())}
+                {type.replace(/_/g, " ").replace(/\b\w/g, (l: string) => l.toUpperCase())}
               </>
             ) : search ? (
               <>

@@ -15,10 +15,25 @@ export default function SignInForm() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [needsVerification, setNeedsVerification] = useState(false)
+
+  const handleResendVerification = async () => {
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email,
+      })
+      if (error) throw error
+      alert('Verification email sent! Please check your inbox.')
+    } catch (error: any) {
+      setError(error.message)
+    }
+  }
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
+    setNeedsVerification(false)
     setLoading(true)
 
     try {
@@ -28,6 +43,10 @@ export default function SignInForm() {
       })
 
       if (error) {
+        if (error.message.includes('Email not confirmed')) {
+          setNeedsVerification(true)
+          throw new Error('Please verify your email address to sign in.')
+        }
         throw error
       }
 
@@ -49,8 +68,22 @@ export default function SignInForm() {
 
       <form onSubmit={handleSignIn} className="space-y-6">
         {error && (
-          <Alert variant="destructive">
-            <AlertDescription>{error}</AlertDescription>
+          <Alert variant={needsVerification ? 'default' : 'destructive'}>
+            <AlertDescription>
+              {error}
+              {needsVerification && (
+                <div className="mt-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleResendVerification}
+                  >
+                    Resend verification email
+                  </Button>
+                </div>
+              )}
+            </AlertDescription>
           </Alert>
         )}
 

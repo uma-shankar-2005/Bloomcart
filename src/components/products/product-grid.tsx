@@ -14,7 +14,12 @@ interface ProductGridProps {
   totalCount: number;
 }
 
-export function ProductGrid({ products, currentPage, totalPages, totalCount }: ProductGridProps) {
+export function ProductGrid({ 
+  products = [], 
+  currentPage = 1, 
+  totalPages = 1, 
+  totalCount = 0 
+}: Partial<ProductGridProps>) {
   const [isAddingToCart, setIsAddingToCart] = useState<string | null>(null);
   const [isAddingToWishlist, setIsAddingToWishlist] = useState<string | null>(null);
 
